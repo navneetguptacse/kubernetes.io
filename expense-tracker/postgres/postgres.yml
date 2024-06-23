@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  labels:
+    app: postgres
+spec:
+  selector:
+    matchLabels:
+      app: postgres
+  serviceName: postgres
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: db
+          image: postgres:14.0-alpine
+          ports:
+            - containerPort: 5432
+          # resources:
+          #   requests:
+          #     memory: "50Mi"
+          #     cpu: "250m"
+          #   limits:
+          #     memory: "100Mi"
+          #     cpu: "500m"
+          env:
+            - name: POSTGRES_PASSWORD_FILE
+              value: /secrets/postgres_password
+          volumeMounts:
+            - name: secret
+              mountPath: /secrets
+            - name: initdb
+              mountPath: /docker-entrypoint-initdb.d/
+      volumes:
+        - name: secret
+          secret:
+            secretName: postgres-secret
+            defaultMode: 0400
+            items:
+              - key: POSTGRES_PASSWORD
+                path: postgres_password
+        - name: initdb
+          configMap:
+            name: initdb
